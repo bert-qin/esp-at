@@ -591,11 +591,11 @@ static uint8_t at_setupCmdQMDNS(uint8_t para_num)
 
     if (esp_at_get_para_as_str(0, &para_str) == ESP_AT_PARA_PARSE_RESULT_OK) {
         esp_ip4_addr_t addr;
-        esp_err_t err = mdns_query_a(para_str, 3000, &addr);
+        esp_err_t err = mdns_query_a((char*)para_str, 3000, &addr);
         if (!err)
         {
             uint8_t buf[32] = {0};
-            memset(buf, 0, 64);
+            memset(buf, 0, 32);
             snprintf((char *)buf, sizeof(buf), "+QMDNS: %d.%d.%d.%d\r\n", IP2STR(&addr));
             esp_at_port_write_data(buf, strlen((char *)buf));
 
