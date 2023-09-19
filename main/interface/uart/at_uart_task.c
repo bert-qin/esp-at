@@ -50,6 +50,9 @@
 #include "esp32c6/rom/uart.h"
 #endif
 
+#include "mdns.h"
+#include "esp_netif.h"
+
 typedef struct {
     int32_t baudrate;
     int8_t data_bits;
@@ -581,6 +584,27 @@ static uint8_t at_setupCmdUartDef(uint8_t para_num)
     return ret;
 }
 
+static uint8_t at_setupCmdQMDNS(uint8_t para_num)
+{
+    uint8_t ret = ESP_AT_RESULT_CODE_ERROR;
+    uint8_t *para_str = NULL;
+
+    if (esp_at_get_para_as_str(0, &para_str) == ESP_AT_PARA_PARSE_RESULT_OK) {
+        esp_ip4_addr_t addr;
+        esp_err_t err = mdns_query_a((char*)para_str, 3000, &addr);
+        if (!err)
+        {
+            uint8_t buf[32] = {0};
+            memset(buf, 0, 32);
+            snprintf((char *)buf, sizeof(buf), "+QMDNS: %d.%d.%d.%d\r\n", IP2STR(&addr));
+            esp_at_port_write_data(buf, strlen((char *)buf));
+
+            ret= ESP_AT_RESULT_CODE_OK;
+        }
+    }
+    return ret;
+}
+
 static uint8_t at_queryCmdUart (uint8_t *cmd_name)
 {
     uint32_t baudrate = 0;
@@ -643,6 +667,7 @@ static const esp_at_cmd_struct at_custom_cmd[] = {
     {"+UART", NULL, at_queryCmdUart, at_setupCmdUartDef, NULL},
     {"+UART_CUR", NULL, at_queryCmdUart, at_setupCmdUart, NULL},
     {"+UART_DEF", NULL, at_queryCmdUartDef, at_setupCmdUartDef, NULL},
+    {"+QMDNS", NULL, NULL, at_setupCmdQMDNS, NULL},
 };
 
 void at_status_callback (esp_at_status_type status)
